@@ -1,0 +1,8 @@
+.importContainer{
+    display: flex;
+    justify-content: space-between;
+    width: 50%;
+    background-color: lightblue;
+    padding: 20px;
+    border-radius: 20px;
+}

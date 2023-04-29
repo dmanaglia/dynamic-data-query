@@ -1,0 +1,20 @@
+version: '1'
+services:
+  postgres:
+    image: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: danny
+      POSTGRES_PASSWORD: password
+  react:
+    image: react-dynamic-data-client
+    ports: 
+     - 3000:3000
+  python:
+    image: python-dynamic-data-app
+    ports:
+     - 8000:8000
+    depends_on:
+     - postgres
