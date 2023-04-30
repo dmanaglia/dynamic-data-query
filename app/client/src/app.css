@@ -6,3 +6,27 @@
     padding: 20px;
     border-radius: 20px;
 }
+
+.tableContainer{
+    width: 90%;
+    max-height: 70vh;
+    border-width: 5px;
+    border-color: black;
+    border-style: solid;
+    border-radius: 5px;
+    overflow-y: scroll;
+}
+
+tr td:hover{
+    background-color: lightblue;
+    cursor: pointer;
+}
+
+.selectedCell{
+    color: white;
+    background-color: green;
+}
+
+.selectedCell:hover{
+    background-color: red;
+}

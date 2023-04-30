@@ -28,13 +28,28 @@ class Upload(Resource):
             result = conn.execute('SELECT * FROM mytable')
             return returnToJSON(result)
 
+class Query(Resource):
+    def put(self):
+        query = request.data
+        string = query.decode('utf-8')
+        with engine.connect() as conn:
+            result = conn.execute(string)
+            return returnToJSON(result)
 
+class GetAll(Resource):
+    def get(self):
+        with engine.connect() as conn:
+            result = conn.execute('SELECT * FROM mytable')
+            return returnToJSON(result)
+        
 def returnToJSON(result):
     jsonStr = json.dumps([dict(row) for row in result], default=str)
     json_data = json.loads(jsonStr)
     return json_data
 
 api.add_resource(Upload, '/upload')
+api.add_resource(Query, '/api/query')
+api.add_resource(GetAll, '/api/all')
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
