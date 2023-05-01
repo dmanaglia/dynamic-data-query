@@ -8,7 +8,6 @@ function App() {
 	const [selectedCells, setSelectedCells] = useState([]);
 	const [runQuery, setRunQuery] = useState(false);
 	const [tableFiltered, setTableFiltered] = useState(false);
-	const [noResults, setNoResults] = useState();
 
     const changeHandler = (event) => {
       	setSelectedFile(event.target.files[0]);
@@ -36,35 +35,47 @@ function App() {
 		}
     };
 
-	const getOptions = (dataType) => {
-		switch(dataType) {
-			case "number":	
-				return (
-					<>
-						<li><a class="dropdown-item" href="#">Sort Largest-Smallest</a></li>
-						<li><a class="dropdown-item" href="#">Sort Smallest-Largest</a></li>
-						<li><a class="dropdown-item" href="#">Group</a></li>
-						<li><a class="dropdown-item" href="#">Calc Average</a></li>
-						<li><a class="dropdown-item" href="#">Calc Largest</a></li>
-						<li><a class="dropdown-item" href="#">Calc Smallest</a></li>
-					</>
-				);
-			default:
-				return (
-					<>
-						<li><a class="dropdown-item" href="#">Group</a></li>
-					</>
-				);
+	const getOptions = (column, indexOneValue) => {
+		if(typeof indexOneValue === 'number'){
+			return (
+				<>
+					<li><a class="dropdown-item" onClick={() => largestToSmallest(column)}>Sort Largest-Smallest</a></li>
+					<li><a class="dropdown-item" onClick={() => smallestToLargest(column)}>Sort Smallest-Largest</a></li>
+					<li><a class="dropdown-item" onClick={() => getAverage(column)}>Calc Average</a></li>
+					<li><a class="dropdown-item" onClick={() => getTotal(column)}>Calc Total</a></li>
+				</>
+			);
+		}else {
+			try {
+				let parsedDate = Date.parse(indexOneValue);
+				if (isNaN(parsedDate)) {
+					return <li><a class="dropdown-item" onClick={() => groupBy(column)}>Group</a></li>
+				} else {
+					return (
+						<>
+							<li><a class="dropdown-item" onClick={() => newestToOldest(column)}>Sort Newest-Oldest</a></li>
+							<li><a class="dropdown-item" onClick={() => oldestToNewest(column)}>Sort Oldest-Newest</a></li>
+						</>
+					);
+				}
+			} catch(error) {
+				return <li><a class="dropdown-item" onClick={() => groupBy(column)}>Group</a></li>
+			}
 		}
 	}
 
 	const selectCell = (event) => {
 		event.target.classList.toggle("selectedCell");
+		let cellValue = event.target.innerText;
+		if(!isNaN(cellValue) && cellValue !== ''){
+			cellValue = cellValue * 1
+		}
 		let newList = [...selectedCells];
 		if(event.target.classList.contains("selectedCell")){
-			newList.push({column: event.target.getAttribute('data-column'), value: event.target.innerHTML});
+			newList.push({column: event.target.getAttribute('data-column'), value: cellValue});
 		} else {
-			newList = newList.filter(obj => obj.column !== event.target.getAttribute('data-column') && obj.value !== event.target.innerHTML);
+			let counter = 0;
+			newList = newList.filter(obj => obj.column !== event.target.getAttribute('data-column') || obj.value !== cellValue || counter++ > 0);
 		}
 		if(newList.length){
 			setRunQuery(true);
@@ -74,21 +85,29 @@ function App() {
 		setSelectedCells(newList);
 	}
 
-	const getAllRows = () => {
-		setRunQuery(false);
-		setSelectedCells([]);
-		let allSelectedEl = document.querySelectorAll(".selectedCell");
-		allSelectedEl.forEach(el => el.classList.remove('selectedCell'));
-		fetch('http://localhost:8000/api/all')
+	const fetchQuery = (queryStr) => {
+		console.log(queryStr);
+		fetch('http://localhost:8000/api/query',
+		{
+			method: "PUT",
+			body: queryStr
+		})
 		.then((response) => response.json())
 		.then((result) => {
-			setNoResults();
 			setFileData(result);
 		})
 		.catch((error) => {
 			console.error('Error:', error);
 		});
-		setTableFiltered(false)
+	}
+
+	const getAllRows = () => {
+		setRunQuery(false);
+		setSelectedCells([]);
+		let allSelectedEl = document.querySelectorAll(".selectedCell");
+		allSelectedEl.forEach(el => el.classList.remove('selectedCell'));
+		setTableFiltered(false);
+		fetchQuery("SELECT * from mytable");
 	}
 
 	const runUserDefinedQuery = () => {
@@ -96,12 +115,15 @@ function App() {
 		setSelectedCells([]);
 		let allSelectedEl = document.querySelectorAll(".selectedCell");
 		allSelectedEl.forEach(el => el.classList.remove('selectedCell'));
+		setTableFiltered(true);
 		let queryString = `SELECT * FROM mytable WHERE `
 		let addition = ``
 		for(let i = 0; i < selectedCells.length; i++){
 			let condition = selectedCells[i];
 			if(typeof condition.value === 'number'){
 				addition += `"${condition.column}"=${condition.value}`
+			} else if(condition.value === ''){
+				addition += `"${condition.column}" IS NULL`
 			} else {
 				addition += `"${condition.column}"='${condition.value}'`
 			}
@@ -110,24 +132,60 @@ function App() {
 			}
 		}
 		queryString += addition;
-		fetch('http://localhost:8000/api/query',
-			{
-				method: "PUT",
-				body: queryString
-			})
-		.then((response) => response.json())
-		.then((result) => {
-			if(!result.length){
-				setNoResults(addition);
-			} else {
-				setNoResults();
-			}
-			setFileData(result);
-		})
-		.catch((error) => {
-			console.error('Error:', error);
-		});
-		setTableFiltered(true)
+		fetchQuery(queryString);
+	}
+
+	const largestToSmallest = (column) => {
+		setRunQuery(false);
+		setSelectedCells([]);
+		let allSelectedEl = document.querySelectorAll(".selectedCell");
+		allSelectedEl.forEach(el => el.classList.remove('selectedCell'));
+		setTableFiltered(true);
+		fetchQuery(`SELECT * FROM mytable ORDER BY "${column}" DESC`);
+	}
+
+	const smallestToLargest = (column) => {
+		setRunQuery(false);
+		setSelectedCells([]);
+		let allSelectedEl = document.querySelectorAll(".selectedCell");
+		allSelectedEl.forEach(el => el.classList.remove('selectedCell'));
+		setTableFiltered(true);
+		fetchQuery(`SELECT * FROM mytable ORDER BY "${column}" ASC`);
+	}
+
+	const getAverage = (column) => {
+		console.log(column);
+	}
+
+	const getTotal = (column) => {
+		console.log(column);
+	}
+
+	const groupBy = (column) => {
+		setRunQuery(false);
+		setSelectedCells([]);
+		let allSelectedEl = document.querySelectorAll(".selectedCell");
+		allSelectedEl.forEach(el => el.classList.remove('selectedCell'));
+		setTableFiltered(true);
+		fetchQuery(`SELECT * FROM mytable GROUP BY "${column}"`);
+	}
+
+	const newestToOldest = (column) => {
+		setRunQuery(false);
+		setSelectedCells([]);
+		let allSelectedEl = document.querySelectorAll(".selectedCell");
+		allSelectedEl.forEach(el => el.classList.remove('selectedCell'));
+		setTableFiltered(true);
+		fetchQuery(`SELECT * FROM mytable ORDER BY "${column}" DESC`);
+	}
+
+	const oldestToNewest = (column) => {
+		setRunQuery(false);
+		setSelectedCells([]);
+		let allSelectedEl = document.querySelectorAll(".selectedCell");
+		allSelectedEl.forEach(el => el.classList.remove('selectedCell'));
+		setTableFiltered(true);
+		fetchQuery(`SELECT * FROM mytable ORDER BY "${column}" ASC`);
 	}
 
     return(
@@ -143,15 +201,10 @@ function App() {
 					<div className='d-flex justify-content-center mt-2'>
 						<div className='tableContainer'>
 							<div className='table-responsive w-100'>
-								{noResults ? (
-									<div className='d-flex justify-content-center'>
-										<h3 className='mt-4 mb-4'>No rows found where {noResults}</h3>
-									</div>
-								): null}
 								<table className='table table-bordered table-sm'>
-									{fileData.map((rowObj, index) => (
+									{fileData.map((rowObj, rowNum) => (
 										<>
-											{index ? (
+											{rowNum ? (
 												<tr>
 													{Object.entries(rowObj).map(([key, value], index) => (
 														<>
@@ -164,16 +217,22 @@ function App() {
 											):(
 												<>
 													<thead className='table-dark'>
-															{Object.keys(rowObj).map((item, index) => (
+															{Object.entries(rowObj).map(([key, value], index) => (
 																<>
 																	{index ? (
 																		<td>
 																			<div class="dropdown">
 																				<button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-																					{item}
+																					{key}
 																				</button>
 																				<ul class="dropdown-menu">
-																					{getOptions(typeof fileData[0][item])}
+																					{(() => {
+																						let firstRealVal = fileData.find(obj => obj[key] || obj[key] === 0)?.[key];
+																						console.log(firstRealVal);
+																						firstRealVal = firstRealVal ? firstRealVal : (firstRealVal === 0) ? 0 : '';
+																						console.log(firstRealVal);
+																						return getOptions(key, firstRealVal);
+																					})()}
 																				</ul>
 																			</div>	
 																		</td>
