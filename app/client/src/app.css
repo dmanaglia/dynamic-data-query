@@ -8,8 +8,8 @@
 }
 
 .tableContainer{
-    width: 90%;
-    max-height: 70vh;
+    width: 95vw;
+    max-height: 75vh;
     min-height: 50vh;
     border-width: 5px;
     border-color: black;
@@ -30,4 +30,16 @@ tr td:hover{
 
 .selectedCell:hover{
     background-color: red;
+}
+
+.conditionsContainer{
+    width: 50vw;
+    border-width: 3px;
+    border-color: black;
+    border-style: dashed;
+    border-radius: 5px;
+}
+
+.dropdown-item:hover{
+    cursor: pointer;
 }

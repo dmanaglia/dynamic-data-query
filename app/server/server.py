@@ -26,19 +26,25 @@ class Upload(Resource):
 
         with engine.connect() as conn:
             result = conn.execute('SELECT * FROM mytable')
-            return returnToJSON(result)
+        return returnToJSON(result)
 
 class Query(Resource):
     def put(self):
         query = request.data
         string = query.decode('utf-8')
-        print("-----------------------------------------------------------------------------")
-        print(string)
-        print("-----------------------------------------------------------------------------")
         with engine.connect() as conn:
             result = conn.execute(text(string))
-            return returnToJSON(result)
-        
+        return returnToJSON(result)
+
+class Calculate(Resource):
+    def put(self):
+        query = request.data
+        string = query.decode('utf-8')
+        with engine.connect() as conn:
+            result = conn.execute(text(string)).fetchone()
+        result_str = str(result[0])
+        return result_str
+
 def returnToJSON(result):
     rows = [dict(row) for row in result]
 
@@ -51,6 +57,7 @@ def returnToJSON(result):
 
 api.add_resource(Upload, '/upload')
 api.add_resource(Query, '/api/query')
+api.add_resource(Calculate, '/api/calculate')
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
