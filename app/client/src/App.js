@@ -8,6 +8,9 @@ function App() {
 	const [selectedCells, setSelectedCells] = useState([]);
 	const [runQuery, setRunQuery] = useState(false);
 	const [tableFiltered, setTableFiltered] = useState(false);
+	const [queryStr, setQueryStr] = useState();
+	const [conditionsState, setConditionsState] = useState([]);
+	const [calculation, setCalculation] = useState();
 
     const changeHandler = (event) => {
       	setSelectedFile(event.target.files[0]);
@@ -39,8 +42,8 @@ function App() {
 		if(typeof indexOneValue === 'number'){
 			return (
 				<>
-					<li><a class="dropdown-item" onClick={() => largestToSmallest(column)}>Sort Largest-Smallest</a></li>
-					<li><a class="dropdown-item" onClick={() => smallestToLargest(column)}>Sort Smallest-Largest</a></li>
+					<li><a class="dropdown-item" onClick={() => queryDesc(column)}>Sort Largest-Smallest</a></li>
+					<li><a class="dropdown-item" onClick={() => queryAsc(column)}>Sort Smallest-Largest</a></li>
 					<li><a class="dropdown-item" onClick={() => getAverage(column)}>Calc Average</a></li>
 					<li><a class="dropdown-item" onClick={() => getTotal(column)}>Calc Total</a></li>
 				</>
@@ -49,17 +52,17 @@ function App() {
 			try {
 				let parsedDate = Date.parse(indexOneValue);
 				if (isNaN(parsedDate)) {
-					return <li><a class="dropdown-item" onClick={() => groupBy(column)}>Group</a></li>
+					return <li><a class="dropdown-item" onClick={() => queryAsc(column)}>Group</a></li>
 				} else {
 					return (
 						<>
-							<li><a class="dropdown-item" onClick={() => newestToOldest(column)}>Sort Newest-Oldest</a></li>
-							<li><a class="dropdown-item" onClick={() => oldestToNewest(column)}>Sort Oldest-Newest</a></li>
+							<li><a class="dropdown-item" onClick={() => queryDesc(column)}>Sort Newest-Oldest</a></li>
+							<li><a class="dropdown-item" onClick={() => queryAsc(column)}>Sort Oldest-Newest</a></li>
 						</>
 					);
 				}
 			} catch(error) {
-				return <li><a class="dropdown-item" onClick={() => groupBy(column)}>Group</a></li>
+				return <li><a class="dropdown-item" onClick={() => queryAsc(column)}>Group</a></li>
 			}
 		}
 	}
@@ -85,16 +88,34 @@ function App() {
 		setSelectedCells(newList);
 	}
 
-	const fetchQuery = (queryStr) => {
-		console.log(queryStr);
+	const fetchQuery = (query) => {
 		fetch('http://localhost:8000/api/query',
 		{
 			method: "PUT",
-			body: queryStr
+			body: query
 		})
 		.then((response) => response.json())
 		.then((result) => {
 			setFileData(result);
+		})
+		.catch((error) => {
+			console.error('Error:', error);
+		});
+	}
+
+	const fetchCalculation = (query) => {
+		fetch('http://localhost:8000/api/calculate',
+		{
+			method: "PUT",
+			body: query
+		})
+		.then((response) => response.json())
+		.then((result) => {
+			if(query.includes("SUM")){
+				setCalculation(`Total = ${result}`);
+			} else {
+				setCalculation(`Average = ${result}`);
+			}
 		})
 		.catch((error) => {
 			console.error('Error:', error);
@@ -107,6 +128,9 @@ function App() {
 		let allSelectedEl = document.querySelectorAll(".selectedCell");
 		allSelectedEl.forEach(el => el.classList.remove('selectedCell'));
 		setTableFiltered(false);
+		setQueryStr();
+		setConditionsState([]);
+		setCalculation();
 		fetchQuery("SELECT * from mytable");
 	}
 
@@ -116,76 +140,121 @@ function App() {
 		let allSelectedEl = document.querySelectorAll(".selectedCell");
 		allSelectedEl.forEach(el => el.classList.remove('selectedCell'));
 		setTableFiltered(true);
+		setCalculation();
+		setConditionsState([]);
+		let conditions = [];
 		let queryString = `SELECT * FROM mytable WHERE `
 		let addition = ``
 		for(let i = 0; i < selectedCells.length; i++){
 			let condition = selectedCells[i];
 			if(typeof condition.value === 'number'){
-				addition += `"${condition.column}"=${condition.value}`
+				addition += `"${condition.column}"=${condition.value}`;
+				conditions.push(`Column "${condition.column}" = ${condition.value}`);
 			} else if(condition.value === ''){
-				addition += `"${condition.column}" IS NULL`
+				addition += `"${condition.column}" IS NULL`;
+				conditions.push(`Column "${condition.column}" is empty`);
 			} else {
-				addition += `"${condition.column}"='${condition.value}'`
+				addition += `"${condition.column}"='${condition.value}'`;
+				conditions.push(`Column "${condition.column}" = ${condition.value}`);
 			}
 			if(i !== selectedCells.length - 1){
-				addition += ` AND `
+				addition += ` AND `;
 			}
 		}
+		setConditionsState(conditions);
+		setQueryStr(addition);
 		queryString += addition;
 		fetchQuery(queryString);
 	}
 
-	const largestToSmallest = (column) => {
+	const queryDesc = (column) => {
 		setRunQuery(false);
 		setSelectedCells([]);
 		let allSelectedEl = document.querySelectorAll(".selectedCell");
 		allSelectedEl.forEach(el => el.classList.remove('selectedCell'));
 		setTableFiltered(true);
-		fetchQuery(`SELECT * FROM mytable ORDER BY "${column}" DESC`);
+		setCalculation();
+
+		let conditions = [...conditionsState];
+		if(conditions[0]?.includes("Ordered") || conditions[0]?.includes("Calculating")){
+			conditions.shift();
+		}
+		conditions.unshift(`Ordered by column "${column}" descending`);
+		setConditionsState(conditions);
+
+		let descStr = `SELECT * FROM mytable`;
+		if(queryStr){
+			descStr += ` WHERE ${queryStr}`;
+		}
+		descStr +=  ` ORDER BY "${column}" DESC`
+		fetchQuery(descStr);
 	}
 
-	const smallestToLargest = (column) => {
+	const queryAsc = (column) => {
 		setRunQuery(false);
 		setSelectedCells([]);
 		let allSelectedEl = document.querySelectorAll(".selectedCell");
 		allSelectedEl.forEach(el => el.classList.remove('selectedCell'));
 		setTableFiltered(true);
-		fetchQuery(`SELECT * FROM mytable ORDER BY "${column}" ASC`);
+		setCalculation();
+
+		let conditions = [...conditionsState];
+		if(conditions[0]?.includes("Ordered") || conditions[0]?.includes("Calculating")){
+			conditions.shift();
+		}
+		conditions.unshift(`Ordered by column "${column}" ascending`);
+		setConditionsState(conditions);
+
+		let ascStr = `SELECT * FROM mytable`;
+		if(queryStr){
+			ascStr += ` WHERE ${queryStr}`;
+		}
+		ascStr +=  ` ORDER BY "${column}" ASC`
+		fetchQuery(ascStr);
 	}
 
 	const getAverage = (column) => {
-		console.log(column);
+		setRunQuery(false);
+		setSelectedCells([]);
+		let allSelectedEl = document.querySelectorAll(".selectedCell");
+		allSelectedEl.forEach(el => el.classList.remove('selectedCell'));
+		setTableFiltered(true);
+		setCalculation();
+
+		let conditions = [...conditionsState];
+		if(conditions[0]?.includes("Ordered") || conditions[0]?.includes("Calculating")){
+			conditions.shift();
+		}
+		conditions.unshift(`Calculating average from column "${column}"`);
+		setConditionsState(conditions);
+
+		let avgStr = `SELECT AVG("${column}") FROM mytable`;
+		if(queryStr){
+			avgStr += ` WHERE ${queryStr}`;
+		}
+		fetchCalculation(avgStr)
 	}
 
 	const getTotal = (column) => {
-		console.log(column);
-	}
-
-	const groupBy = (column) => {
 		setRunQuery(false);
 		setSelectedCells([]);
 		let allSelectedEl = document.querySelectorAll(".selectedCell");
 		allSelectedEl.forEach(el => el.classList.remove('selectedCell'));
 		setTableFiltered(true);
-		fetchQuery(`SELECT * FROM mytable GROUP BY "${column}"`);
-	}
+		setCalculation();
 
-	const newestToOldest = (column) => {
-		setRunQuery(false);
-		setSelectedCells([]);
-		let allSelectedEl = document.querySelectorAll(".selectedCell");
-		allSelectedEl.forEach(el => el.classList.remove('selectedCell'));
-		setTableFiltered(true);
-		fetchQuery(`SELECT * FROM mytable ORDER BY "${column}" DESC`);
-	}
+		let conditions = [...conditionsState];
+		if(conditions[0]?.includes("Ordered") || conditions[0]?.includes("Calculating")){
+			conditions.shift();
+		}
+		conditions.unshift(`Calculating total from column "${column}"`);
+		setConditionsState(conditions);
 
-	const oldestToNewest = (column) => {
-		setRunQuery(false);
-		setSelectedCells([]);
-		let allSelectedEl = document.querySelectorAll(".selectedCell");
-		allSelectedEl.forEach(el => el.classList.remove('selectedCell'));
-		setTableFiltered(true);
-		fetchQuery(`SELECT * FROM mytable ORDER BY "${column}" ASC`);
+		let totalStr = `SELECT SUM("${column}") FROM mytable`;
+		if(queryStr){
+			totalStr += ` WHERE ${queryStr}`;
+		}
+		fetchCalculation(totalStr)
 	}
 
     return(
@@ -198,6 +267,34 @@ function App() {
 					<div className='d-flex justify-content-center mt-2'>
 						<h2>{selectedFile.name}</h2>
 					</div>
+					{conditionsState.length || calculation ? (
+						<div className='d-flex justify-content-center'>
+							<div className='conditionsContainer'>
+								<h4 className='mt-2 ms-2'>Current Filters:</h4>
+								<ul>
+									{conditionsState.map((condition, index) => (
+										<>
+											{condition.includes('Calculating') || condition.includes('Ordered') ? (
+												<>
+													<p className='mt-2 mb-2'>{condition}</p>
+													{conditionsState[1] ? (
+														<p className='mb-2'>Where:</p>
+													):null}
+												</>
+											): (
+												<li>{condition}</li>
+											)}
+										</>
+									))}
+									{calculation ? (
+										<div className='d-flex justify-content-center'>
+											<h3 className='mt-3 mb-3'>{calculation}</h3>
+										</div>
+									):null}
+								</ul>
+							</div>
+						</div>
+					): null}
 					<div className='d-flex justify-content-center mt-2'>
 						<div className='tableContainer'>
 							<div className='table-responsive w-100'>
@@ -228,9 +325,7 @@ function App() {
 																				<ul class="dropdown-menu">
 																					{(() => {
 																						let firstRealVal = fileData.find(obj => obj[key] || obj[key] === 0)?.[key];
-																						console.log(firstRealVal);
 																						firstRealVal = firstRealVal ? firstRealVal : (firstRealVal === 0) ? 0 : '';
-																						console.log(firstRealVal);
 																						return getOptions(key, firstRealVal);
 																					})()}
 																				</ul>
