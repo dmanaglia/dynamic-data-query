@@ -4,7 +4,7 @@ from flask_cors import CORS
 from io import BytesIO
 import pandas as pd
 import json
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from datetime import datetime
 
 global engine
@@ -32,24 +32,25 @@ class Query(Resource):
     def put(self):
         query = request.data
         string = query.decode('utf-8')
+        print("-----------------------------------------------------------------------------")
+        print(string)
+        print("-----------------------------------------------------------------------------")
         with engine.connect() as conn:
-            result = conn.execute(string)
-            return returnToJSON(result)
-
-class GetAll(Resource):
-    def get(self):
-        with engine.connect() as conn:
-            result = conn.execute('SELECT * FROM mytable')
+            result = conn.execute(text(string))
             return returnToJSON(result)
         
 def returnToJSON(result):
-    jsonStr = json.dumps([dict(row) for row in result], default=str)
-    json_data = json.loads(jsonStr)
-    return json_data
+    rows = [dict(row) for row in result]
+
+    for row in rows:
+        for key, value in row.items():
+            if isinstance(value, datetime):
+                row[key] = value.strftime('%m/%d/%Y')
+
+    return rows
 
 api.add_resource(Upload, '/upload')
 api.add_resource(Query, '/api/query')
-api.add_resource(GetAll, '/api/all')
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
