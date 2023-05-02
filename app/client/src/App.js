@@ -42,27 +42,27 @@ function App() {
 		if(typeof indexOneValue === 'number'){
 			return (
 				<>
-					<li><a class="dropdown-item" onClick={() => queryDesc(column)}>Sort Largest-Smallest</a></li>
-					<li><a class="dropdown-item" onClick={() => queryAsc(column)}>Sort Smallest-Largest</a></li>
-					<li><a class="dropdown-item" onClick={() => getAverage(column)}>Calc Average</a></li>
-					<li><a class="dropdown-item" onClick={() => getTotal(column)}>Calc Total</a></li>
+					<li><button className="dropdown-item" onClick={() => queryDesc(column)}>Sort Largest-Smallest</button></li>
+					<li><button className="dropdown-item" onClick={() => queryAsc(column)}>Sort Smallest-Largest</button></li>
+					<li><button className="dropdown-item" onClick={() => getAverage(column)}>Calc Average</button></li>
+					<li><button className="dropdown-item" onClick={() => getTotal(column)}>Calc Total</button></li>
 				</>
 			);
 		}else {
 			try {
 				let parsedDate = Date.parse(indexOneValue);
 				if (isNaN(parsedDate)) {
-					return <li><a class="dropdown-item" onClick={() => queryAsc(column)}>Group</a></li>
+					return <li><button className="dropdown-item" onClick={() => queryAsc(column)}>Group</button></li>
 				} else {
 					return (
 						<>
-							<li><a class="dropdown-item" onClick={() => queryDesc(column)}>Sort Newest-Oldest</a></li>
-							<li><a class="dropdown-item" onClick={() => queryAsc(column)}>Sort Oldest-Newest</a></li>
+							<li><button className="dropdown-item" onClick={() => queryDesc(column)}>Sort Newest-Oldest</button></li>
+							<li><button className="dropdown-item" onClick={() => queryAsc(column)}>Sort Oldest-Newest</button></li>
 						</>
 					);
 				}
 			} catch(error) {
-				return <li><a class="dropdown-item" onClick={() => queryAsc(column)}>Group</a></li>
+				return <li><button className="dropdown-item" onClick={() => queryAsc(column)}>Group</button></li>
 			}
 		}
 	}
@@ -261,11 +261,14 @@ function App() {
     	<>
 			{fileData ? (
 				<>
-					{tableFiltered ? (
-						<button className='btn btn-secondary ms-3 mt-3' onClick={getAllRows}>Back To Full Table</button>
-					):null}
-					<div className='d-flex justify-content-center mt-2'>
+					<div className='d-flex justify-content-between mt-3'>
+						{tableFiltered ? (
+							<button className='btn btn-primary ms-3 mb-2' onClick={getAllRows}>Back To Full Table</button>
+						):(
+							<button className='btn btn-primary ms-3 mb-2' disabled>Back To Full Table</button>
+						)}
 						<h2>{selectedFile.name}</h2>
+						<button type="button" className="btn btn-primary  me-3 mb-2" data-bs-toggle="modal" data-bs-target="#selectFileModal">Select New File</button>
 					</div>
 					{conditionsState.length || calculation ? (
 						<div className='d-flex justify-content-center'>
@@ -297,11 +300,35 @@ function App() {
 					): null}
 					<div className='d-flex justify-content-center mt-2'>
 						<div className='tableContainer'>
-							<div className='table-responsive w-100'>
-								<table className='table table-bordered table-sm'>
-									{fileData.map((rowObj, rowNum) => (
-										<>
-											{rowNum ? (
+							{fileData.length ? (
+								<div className='table-responsive w-100'>
+									<table className='table table-bordered border-dark'>
+										<thead className='bg-dark'>
+											<tr>
+												{Object.entries(fileData[0]).map(([key, value], index) => (
+													<>
+														{index ? (
+															<th className='bg-dark'>
+																<div className="dropdown">
+																	<button className="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+																		{key}
+																	</button>
+																	<ul className="dropdown-menu">
+																		{(() => {
+																			let firstRealVal = fileData.find(obj => obj[key] || obj[key] === 0)?.[key];
+																			firstRealVal = firstRealVal ? firstRealVal : (firstRealVal === 0) ? 0 : '';
+																			return getOptions(key, firstRealVal);
+																		})()}
+																	</ul>
+																</div>	
+															</th>
+														):null}
+													</>
+												))}
+											</tr>
+										</thead>
+										<tbody>
+											{fileData.map((rowObj, rowNum) => (
 												<tr>
 													{Object.entries(rowObj).map(([key, value], index) => (
 														<>
@@ -311,59 +338,48 @@ function App() {
 														</>
 													))}
 												</tr>
-											):(
-												<>
-													<thead className='table-dark'>
-															{Object.entries(rowObj).map(([key, value], index) => (
-																<>
-																	{index ? (
-																		<td>
-																			<div class="dropdown">
-																				<button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-																					{key}
-																				</button>
-																				<ul class="dropdown-menu">
-																					{(() => {
-																						let firstRealVal = fileData.find(obj => obj[key] || obj[key] === 0)?.[key];
-																						firstRealVal = firstRealVal ? firstRealVal : (firstRealVal === 0) ? 0 : '';
-																						return getOptions(key, firstRealVal);
-																					})()}
-																				</ul>
-																			</div>	
-																		</td>
-																	):null}
-																</>
-															))}
-													</thead>
-													<tr>
-														{Object.entries(rowObj).map(([key, value], index) => (
-															<>
-																{index ? (
-																	<td onClick={selectCell} data-column={key}>{value}</td>
-																):null}
-															</>
-														))}
-													</tr>
-												</>
-											)}
-										</>
-									))}
-								</table>
-							</div>
+											))}
+										</tbody>
+									</table>
+								</div>
+							):(
+								<div className='d-flex justify-content-center'>
+									<h2 className='mt-5 mb-5'>No Results Found!</h2>
+								</div>
+							)}
 						</div>
 					</div>
 					<div className='d-flex justify-content-center mt-2'>
-						{runQuery ? <button className='btn btn-primary' onClick={runUserDefinedQuery}>Filter</button> : <button className='btn btn-primary' disabled>Filter</button>}
+						{runQuery ? <button className='btn btn-primary mb-5' onClick={runUserDefinedQuery}>Filter</button> : <button className='btn btn-primary' disabled>Filter</button>}
 					</div>
 				</>
-			):null}
-			<div className='d-flex justify-content-center mt-5'>
-				<div className='importContainer'>
-					<input 	type="file" 
-							name="file" 
-							onChange={changeHandler} 
-							accept='.xlsx'/>
-					<button className="btn btn-primary" onClick={handleSubmission}>Submit</button>
+			):(
+				<div className='d-flex flex-column mt-5'>
+					<div className='d-flex justify-content-center'>
+						<h2 className='mt-5'>Welcome To Dynamic Data!</h2>
+					</div>
+					<div className='d-flex justify-content-center'>
+						<p>To start, import an excel file!</p>
+					</div>
+					<div className='d-flex justify-content-center'>
+						<button type="button" className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#selectFileModal">Select File</button>
+					</div>
+				</div>
+			)}
+			<div class="modal fade" tabindex="-1" id="selectFileModal">
+				<div class="modal-dialog">
+					<div class="modal-content">
+						<div class="modal-header">
+							<h5 class="modal-title">Select File</h5>
+							<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+						</div>
+					<div class="modal-body">
+						<input 	type="file" name="file" onChange={changeHandler} accept='.xlsx'/>
+					</div>
+						<div class="modal-footer">
+							<button className="btn btn-primary" onClick={handleSubmission} data-bs-dismiss="modal">Submit</button>
+						</div>
+					</div>
 				</div>
 			</div>
       	</>
