@@ -9,8 +9,8 @@
 
 .tableContainer{
     width: 95vw;
-    max-height: 75vh;
-    min-height: 50vh;
+    max-height: 70vh;
+    min-height: 40vh;
     border-width: 5px;
     border-color: black;
     border-style: solid;
@@ -18,18 +18,18 @@
     overflow-y: scroll;
 }
 
-tr td:hover{
+td:hover{
     background-color: lightblue;
     cursor: pointer;
 }
 
 .selectedCell{
     color: white;
-    background-color: green;
+    background-color: green !important;
 }
 
 .selectedCell:hover{
-    background-color: red;
+    background-color: red !important;
 }
 
 .conditionsContainer{
@@ -43,3 +43,4 @@ tr td:hover{
 .dropdown-item:hover{
     cursor: pointer;
 }
+
