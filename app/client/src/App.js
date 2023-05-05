@@ -13,8 +13,10 @@ function App() {
 	const [calculation, setCalculation] = useState();
 
     const changeHandler = (event) => {
-      	setSelectedFile(event.target.files[0]);
-      	setIsSelected(true);
+		if(event.target.files.length){
+			setSelectedFile(event.target.files[0]);
+			setIsSelected(true);
+		}
     };
 
     const handleSubmission = () => {
@@ -301,7 +303,7 @@ function App() {
 					<div className='d-flex justify-content-center mt-2'>
 						<div className='tableContainer'>
 							{fileData.length ? (
-								<div className='table-responsive w-100'>
+								<div className='table-responsive'>
 									<table className='table table-bordered border-dark'>
 										<thead className='bg-dark'>
 											<tr>
@@ -327,7 +329,7 @@ function App() {
 												))}
 											</tr>
 										</thead>
-										<tbody>
+										<tbody className=''>
 											{fileData.map((rowObj, rowNum) => (
 												<tr>
 													{Object.entries(rowObj).map(([key, value], index) => (
@@ -366,17 +368,17 @@ function App() {
 					</div>
 				</div>
 			)}
-			<div class="modal fade" tabindex="-1" id="selectFileModal">
-				<div class="modal-dialog">
-					<div class="modal-content">
-						<div class="modal-header">
-							<h5 class="modal-title">Select File</h5>
-							<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			<div className="modal fade" tabIndex="-1" id="selectFileModal">
+				<div className="modal-dialog">
+					<div className="modal-content">
+						<div className="modal-header">
+							<h5 className="modal-title">Select File</h5>
+							<button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 						</div>
-					<div class="modal-body">
+					<div className="modal-body">
 						<input 	type="file" name="file" onChange={changeHandler} accept='.xlsx'/>
 					</div>
-						<div class="modal-footer">
+						<div className="modal-footer">
 							<button className="btn btn-primary" onClick={handleSubmission} data-bs-dismiss="modal">Submit</button>
 						</div>
 					</div>
